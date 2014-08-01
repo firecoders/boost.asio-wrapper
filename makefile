@@ -1,4 +1,4 @@
-# 2D-engine, A C++ library wrapping sfml, to be used for 2D games
+# A C++ library, wrapping boost.asio, to be used for client or server applications
 # Copyright (C) 2014 firecoders
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -49,6 +49,21 @@ $(LIBRARY): make_dirs $(OBJS)
 ####################################################
 OBJDIRS = $(subst $(SRCDIR),$(OBJDIR),$(shell find $(SRCDIR) -type d))
 TEST_OBJECTS = $(subst .cpp,.o,$(shell find $(TEST_DIR) -type f -regex .*.cpp))
+
+####################################################
+#               Boost integration                  #
+####################################################
+
+BOOST_DIR = boost_1_55_0
+BOOST_URL = http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download
+BOOST_DOWNLOAD_NAME = boost
+
+$(BOOST_DOWNLOAD_NAME):
+	@echo "Downloading boost from $(BOOST_URL)"
+	@wget -O boost_1_55_0.tar.gz $(BOOST_URL)
+	@tar xzvf boost_1_55_0.tar.gz
+	@rm boost_1_55_0.tar.gz
+	@echo "Done downloading boost"
 
 ####################################################
 #          Googletest integration                  #
