@@ -1,4 +1,4 @@
-# A C++ library, wrapping boost.asio, to be used for client or server applications
+# boost.asio-wrapper, A C++ library, wrapping boost.asio, to be used for client or server applications
 # Copyright (C) 2014 firecoders
 #
 # Permission is hereby granted, free of charge, to any person obtaining
