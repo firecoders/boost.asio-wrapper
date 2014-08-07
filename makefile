@@ -1,4 +1,4 @@
-# A C++ library, wrapping boost.asio, to be used for client or server applications
+# boost.asio-wrapper, A C++ library, wrapping boost.asio, to be used for client or server applications
 # Copyright (C) 2014 firecoders
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -35,10 +35,40 @@ default: $(LIBRARY)
 #        Other prerequisites / dependencies        #
 ####################################################
 
+# network
+
+wrapper/network/Connection.o: \
+	wrapper/network/Connection.h
+wrapper/network/Connection.h: \
+	wrapper/network/events.h
+
+wrapper/network/utils/Acceptor.o: \
+	wrapper/network/utils/Acceptor.h
+wrapper/network/utils/Acceptor.h: \
+	wrapper/network/Connection.h \
+	wrapper/network/events.h
+
+wrapper/network/utils/Connector.o: \
+	wrapper/network/utils/Connector.h
+wrapper/network/utils/Connector.h: \
+	wrapper/network/Connection.h \
+	wrapper/network/events.h
+
+wrapper/network/Connection_handler.o: \
+	wrapper/network/Connection_handler.h
+wrapper/network/Connection_handler.h: \
+	wrapper/network/Connection.h \
+	wrapper/network/utils/Acceptor.h \
+	wrapper/network/utils/Connector.h \
+	wrapper/network/events.h
+
 ####################################################
 #         Application definitions                  #
 ####################################################
-OBJS = 
+OBJS = wrapper/network/Connection.o \
+		wrapper/network/utils/Acceptor.o \
+		wrapper/network/utils/Connector.o \
+		wrapper/network/Connection_handler.o
 
 $(LIBRARY): make_dirs $(OBJS)
 	ar rcs $@ $(addprefix $(OBJDIR), $(OBJS))
@@ -48,58 +78,6 @@ $(LIBRARY): make_dirs $(OBJS)
 #        Generated Variables                       #
 ####################################################
 OBJDIRS = $(subst $(SRCDIR),$(OBJDIR),$(shell find $(SRCDIR) -type d))
-TEST_OBJECTS = $(subst .cpp,.o,$(shell find $(TEST_DIR) -type f -regex .*.cpp))
-
-####################################################
-#               Boost integration                  #
-####################################################
-
-BOOST_DIR = boost_1_55_0
-BOOST_URL = http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download
-BOOST_DOWNLOAD_NAME = boost
-
-$(BOOST_DOWNLOAD_NAME):
-	@echo "Downloading boost from $(BOOST_URL)"
-	@wget -O boost_1_55_0.tar.gz $(BOOST_URL)
-	@tar xzvf boost_1_55_0.tar.gz
-	@rm boost_1_55_0.tar.gz
-	@echo "Done downloading boost"
-
-####################################################
-#          Googletest integration                  #
-####################################################
-
-GTEST_DIR = dep/gtest-1.7.0
-GTEST_URL = https://googletest.googlecode.com/files/gtest-1.7.0.zip
-TEST_DIR = tests
-TEST_EXEC_NAME = test
-
-$(TEST_EXEC_NAME): $(TEST_OBJECTS) libengine.a dep/bin/libgtest.a
-	$(CC) -pthread $^ -o $@
-	@echo Done linking $@
-
-$(TEST_DIR)/%.o: $(TEST_DIR)/%.cpp libengine.a dep/bin/libgtest.a
-	$(CC) -isystem $(GTEST_DIR)/include -Isrc -c $(filter %.cpp, $^) -o $@
-
-$(GTEST_DIR)/%:
-	@echo "Downloading googletest from $(GTEST_URL)"
-	@mkdir -p dep/bin
-	@curl $(GTEST_URL) > gtest.zip
-	@unzip gtest.zip -d dep
-	@rm gtest.zip
-	@echo "Done downloading googletest"
-
-dep/bin/gtest-all.o: $(GTEST_DIR)/src/gtest-all.cc
-	$(CC) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) \
-		-pthread -c $^ -o $@
-
-dep/bin/gtest_main.o: $(GTEST_DIR)/src/gtest_main.cc
-	$(CC) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) \
-		-pthread -c $^ -o $@
-
-dep/bin/libgtest.a: dep/bin/gtest-all.o dep/bin/gtest_main.o
-	ar -rv $@ $^
-	@echo Done linking $@
 
 ####################################################
 #          Other targets                           #
@@ -116,7 +94,7 @@ dep/bin/libgtest.a: dep/bin/gtest-all.o dep/bin/gtest_main.o
 	$(CC) -c $(filter %.cpp, $^) -o $(OBJDIR)$@
 
 clean:
-	-rm -r bin $(LIBRARY) $(TEST_OBJECTS) $(TEST_EXEC_NAME)
+	-rm -r bin $(LIBRARY)
 
 make_dirs:
 	@mkdir -p $(OBJDIRS)
