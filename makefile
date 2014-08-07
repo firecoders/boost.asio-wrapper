@@ -35,10 +35,40 @@ default: $(LIBRARY)
 #        Other prerequisites / dependencies        #
 ####################################################
 
+# network
+
+wrapper/network/Connection.o: \
+	wrapper/network/Connection.h
+wrapper/network/Connection.h: \
+	wrapper/network/events.h
+
+wrapper/network/utils/Acceptor.o: \
+	wrapper/network/utils/Acceptor.h
+wrapper/network/utils/Acceptor.h: \
+	wrapper/network/Connection.h \
+	wrapper/network/events.h
+
+wrapper/network/utils/Connector.o: \
+	wrapper/network/utils/Connector.h
+wrapper/network/utils/Connector.h: \
+	wrapper/network/Connection.h \
+	wrapper/network/events.h
+
+wrapper/network/Connection_handler.o: \
+	wrapper/network/Connection_handler.h
+wrapper/network/Connection_handler.h: \
+	wrapper/network/Connection.h \
+	wrapper/network/utils/Acceptor.h \
+	wrapper/network/utils/Connector.h \
+	wrapper/network/events.h
+
 ####################################################
 #         Application definitions                  #
 ####################################################
-OBJS = 
+OBJS = wrapper/network/Connection.o \
+		wrapper/network/utils/Acceptor.o \
+		wrapper/network/utils/Connector.o \
+		wrapper/network/Connection_handler.o
 
 $(LIBRARY): make_dirs $(OBJS)
 	ar rcs $@ $(addprefix $(OBJDIR), $(OBJS))
