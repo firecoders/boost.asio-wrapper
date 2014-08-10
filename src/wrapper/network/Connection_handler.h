@@ -23,7 +23,7 @@
 #define CONNECTION_HANDLER_H_
 
 #include <string>
-
+#include <mutex>
 #include <map>
 
 #include <boost/shared_ptr.hpp>
@@ -60,9 +60,15 @@ namespace wrapper
                 bool contains(boost::shared_ptr<wrapper::network::Connection>& connection);
                 bool contains(wrapper::network::Connection_identifier& identifier);
 
+                void start();
+
+                void wait_for_close();
+
                 void close();
 
             private:
+
+                std::mutex join;
 
                 void add_connection(boost::shared_ptr<wrapper::network::Connection>& connection, wrapper::network::EVENTS open_event);
 

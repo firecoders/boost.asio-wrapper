@@ -26,6 +26,7 @@ using namespace wrapper::network;
 Connection_handler::Connection_handler():
         connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
 {
+    join.lock();
 }
 
 void Connection_handler::connect_to(std::string ip, int port){
@@ -76,6 +77,16 @@ bool Connection_handler::contains(Connection_identifier& identifier)
     return connections->find(identifier) != connections->end();
 }
 
+void Connection_handler::start()
+{
+    join.try_lock();
+}
+
+void Connection_handler::wait_for_close()
+{
+    join.lock();
+}
+
 void Connection_handler::close()
 {
     io_service.stop();
@@ -91,6 +102,8 @@ void Connection_handler::close()
             ++it_p_acceptor)
         (it_p_acceptor->second)->close();
     acceptors.clear();
+
+    join.unlock();
 }
 
 void Connection_handler::add_connection(boost::shared_ptr<Connection>& connection, EVENTS open_event)
