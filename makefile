@@ -62,13 +62,26 @@ wrapper/network/Connection_handler.h: \
 	wrapper/network/utils/Connector.h \
 	wrapper/network/events.h
 
+#commands
+
+wrapper/commands/interface/Command.h: \
+	wrapper/network/events.h \
+	wrapper/network/Connection.h \
+	wrapper/network/Connection_handler.h
+	
+wrapper/commands/Command_hub.o: \
+	wrapper/commands/Command_hub.h
+wrapper/commands/Command_hub.h: \
+	wrapper/commands/interface/Command.h
+
 ####################################################
 #         Application definitions                  #
 ####################################################
 OBJS = wrapper/network/Connection.o \
 		wrapper/network/utils/Acceptor.o \
 		wrapper/network/utils/Connector.o \
-		wrapper/network/Connection_handler.o
+		wrapper/network/Connection_handler.o \
+		wrapper/commands/Command_hub.o
 
 $(LIBRARY): make_dirs $(OBJS)
 	ar rcs $@ $(addprefix $(OBJDIR), $(OBJS))
