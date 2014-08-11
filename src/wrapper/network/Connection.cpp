@@ -55,7 +55,7 @@ void Connection::start()
 void Connection::stop()
 {
     close();
-    connection_handler.handle_event(EVENTS::CONNECTION_CLOSED);
+    connection_handler.handle_event(EVENTS::CONNECTION_CLOSED, shared_from_this());
 }
 
 void Connection::write(std::string message)
@@ -86,7 +86,7 @@ void Connection::update_identifier()
 void Connection::handle_error(const boost::system::error_code& error)
 {
     if(error == boost::asio::error::eof){
-        connection_handler.handle_event(EVENTS::CONNECTION_WAS_CLOSED);
+        connection_handler.handle_event(EVENTS::CONNECTION_WAS_CLOSED, shared_from_this());
         close();
     }
     else if(error){
@@ -135,7 +135,7 @@ void Connection::handle_read_body(const boost::system::error_code& error)
         ss << &buf_body;
         std::string body = ss.str();
 
-        connection_handler.handle_event(EVENTS::MESSAGE_RECEIVED, body);
+        connection_handler.handle_event(EVENTS::MESSAGE_RECEIVED, shared_from_this(), body);
         read_header();
     }
     else

@@ -35,6 +35,11 @@
 
 namespace wrapper
 {
+    namespace commands
+    {
+        class Command;
+    }
+
     namespace network
     {
         class Connection_handler
@@ -44,7 +49,9 @@ namespace wrapper
 
             public:
 
-                Connection_handler();
+                Connection_handler(std::shared_ptr<wrapper::commands::Command> Command);
+
+                void set_Command(std::shared_ptr<wrapper::commands::Command> Command);
 
                 void connect_to(std::string ip, int port);
 
@@ -53,7 +60,9 @@ namespace wrapper
 
                 void remove_connection(wrapper::network::Connection_identifier& identifier);
 
-                void handle_event(wrapper::network::EVENTS event, std::string message = "");
+                void handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator);
+
+                void handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator, std::string& message);
 
                 boost::shared_ptr<std::map<wrapper::network::Connection_identifier, boost::shared_ptr<wrapper::network::Connection> > > get_connections();
 
@@ -73,6 +82,8 @@ namespace wrapper
                 void add_connection(boost::shared_ptr<wrapper::network::Connection>& connection, wrapper::network::EVENTS open_event);
 
                 bool contains_acceptor(int port);
+
+                std::shared_ptr<wrapper::commands::Command> command;
 
                 boost::asio::io_service io_service;
                 boost::shared_ptr<std::map<wrapper::network::Connection_identifier, boost::shared_ptr<wrapper::network::Connection> > > connections;
