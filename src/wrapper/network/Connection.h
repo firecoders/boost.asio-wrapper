@@ -62,6 +62,11 @@ namespace wrapper
                     return to_string(ip, port) == to_string(other.ip, other.port);
                 }
 
+                bool operator!=(const Connection_identifier& other) const
+                {
+                    return to_string(ip, port) != to_string(other.ip, other.port);
+                }
+
                 bool operator<(const Connection_identifier& other) const
                 {
                     return to_string(ip, port) < to_string(other.ip, other.port);

@@ -20,12 +20,15 @@
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #include "Connection_handler.h"
+#include "wrapper/commands/interfaces/Command.h"
 
 using namespace wrapper::network;
+using namespace wrapper::commands;
 
-Connection_handler::Connection_handler():
-        connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
+Connection_handler::Connection_handler(std::shared_ptr<Command> Command):
+        command(Command), connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
 {
+    join.lock();
 }
 
 void Connection_handler::connect_to(std::string ip, int port){
@@ -56,8 +59,22 @@ void Connection_handler::remove_connection(Connection_identifier& identifier)
     }
 }
 
-void Connection_handler::handle_event(wrapper::network::EVENTS event, std::string message)
+void Connection_handler::handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator)
 {
+    std::string placeholder = "";
+    wrapper::commands::Command_params c{placeholder, event, activator, *this};
+
+    if(command->match(c))
+        command->execute(c);
+}
+
+void Connection_handler::handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator,
+                                      std::string& message)
+{
+    wrapper::commands::Command_params c{message, event, activator, *this};
+
+    if(command->match(c))
+        command->execute(c);
 }
 
 boost::shared_ptr<std::map<Connection_identifier, boost::shared_ptr<Connection> > > Connection_handler::get_connections()
@@ -76,6 +93,16 @@ bool Connection_handler::contains(Connection_identifier& identifier)
     return connections->find(identifier) != connections->end();
 }
 
+void Connection_handler::start()
+{
+    join.try_lock();
+}
+
+void Connection_handler::wait_for_close()
+{
+    join.lock();
+}
+
 void Connection_handler::close()
 {
     io_service.stop();
@@ -91,6 +118,8 @@ void Connection_handler::close()
             ++it_p_acceptor)
         (it_p_acceptor->second)->close();
     acceptors.clear();
+
+    join.unlock();
 }
 
 void Connection_handler::add_connection(boost::shared_ptr<Connection>& connection, EVENTS open_event)
@@ -98,7 +127,7 @@ void Connection_handler::add_connection(boost::shared_ptr<Connection>& connectio
     if(!contains(connection)){
         connections->insert(std::pair<Connection_identifier, boost::shared_ptr<Connection> >(connection->get_identifier(), connection));
         connection->start();
-        handle_event(open_event);
+        handle_event(open_event, connection);
     }
     else
         connection->stop();
