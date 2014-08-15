@@ -22,9 +22,11 @@
 ####################################################
 #        Constants                                 #
 ####################################################
+INCDIR = inc/
 SRCDIR = src/
 OBJDIR = bin/
-CC = g++ -std=c++11 -Wall -I$(SRCDIR)
+
+CC = g++ -std=c++11 -Wall -I$(SRCDIR) -I$(INCDIR)
 
 LIBRARY = libnetwork.a
 
@@ -110,10 +112,10 @@ OBJDIRS = $(subst $(SRCDIR),$(OBJDIR),$(shell find $(SRCDIR) -type d))
 .PHONY : clean make_dirs all
 
 %.h:
-	@touch $(SRCDIR)$@
+	@touch $(INCDIR)$@
 
 %.hpp:
-	@touch $(SRCDIR)$@
+	@touch $(INCDIR)$@
 
 %.o : %.cpp
 	$(CC) -c $(filter %.cpp, $^) -o $(OBJDIR)$@
@@ -132,6 +134,6 @@ all: $(LIBRARY)
 ####################################################
 vpath %.cpp $(SRCDIR)
 vpath %.o   $(OBJDIR)
-vpath %.h   $(SRCDIR)
-vpath %.hpp $(SRCDIR)
+vpath %.h   $(INCDIR)
+vpath %.hpp $(INCDIR)
 

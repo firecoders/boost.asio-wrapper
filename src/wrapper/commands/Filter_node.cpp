@@ -19,7 +19,7 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include "Filter_node.h"
+#include "wrapper/commands/Filter_node.h"
 
 using namespace wrapper::commands;
 

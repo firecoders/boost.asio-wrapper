@@ -19,7 +19,7 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include "Connection_handler.h"
+#include "wrapper/network/Connection_handler.h"
 #include "wrapper/commands/interfaces/Command.h"
 
 using namespace wrapper::network;
