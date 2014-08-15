@@ -36,6 +36,9 @@ namespace wrapper
 {
     namespace network
     {
+        class Acceptor;
+        class Connector;
+
         class Connection_handler;
 
         enum class CONNECTION_STATE
@@ -88,11 +91,12 @@ namespace wrapper
         class Connection:
                 public boost::enable_shared_from_this<Connection>
         {
+                friend class Acceptor;
+                friend class Connector;
+
             public:
 
                 Connection(boost::asio::io_service& io_service, wrapper::network::Connection_handler& connection_handler);
-
-                boost::asio::ip::tcp::socket& get_socket();
 
                 wrapper::network::Connection_identifier& get_identifier();
 
@@ -101,6 +105,8 @@ namespace wrapper
                 void write(std::string message);
 
             private:
+
+                boost::asio::ip::tcp::socket& get_socket();
 
                 void close();
 

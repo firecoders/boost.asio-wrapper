@@ -27,6 +27,7 @@
 #include <map>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/thread.hpp>
 
 #include "wrapper/network/Connection.h"
 #include "wrapper/network/utils/Acceptor.h"
@@ -49,14 +50,15 @@ namespace wrapper
 
             public:
 
-                Connection_handler(std::shared_ptr<wrapper::commands::Command> Command);
+                Connection_handler(std::shared_ptr<wrapper::commands::Command> command);
 
-                void set_Command(std::shared_ptr<wrapper::commands::Command> Command);
+                void set_command(std::shared_ptr<wrapper::commands::Command> command);
 
                 void connect_to(std::string ip, int port);
 
                 void accept_on(int port);
                 void stop_accept_on(int port);
+                bool contains_acceptor(int port);
 
                 void remove_connection(wrapper::network::Connection_identifier& identifier);
 
@@ -64,7 +66,7 @@ namespace wrapper
 
                 void handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator, std::string& message);
 
-                boost::shared_ptr<std::map<wrapper::network::Connection_identifier, boost::shared_ptr<wrapper::network::Connection> > > get_connections();
+                boost::shared_ptr<const std::map<wrapper::network::Connection_identifier, boost::shared_ptr<wrapper::network::Connection> > > get_connections();
 
                 bool contains(boost::shared_ptr<wrapper::network::Connection>& connection);
                 bool contains(wrapper::network::Connection_identifier& identifier);
@@ -77,11 +79,11 @@ namespace wrapper
 
             private:
 
-                std::mutex join;
-
                 void add_connection(boost::shared_ptr<wrapper::network::Connection>& connection, wrapper::network::EVENTS open_event);
 
-                bool contains_acceptor(int port);
+                std::mutex join;
+
+                boost::shared_mutex connections_mutex, acceptors_mutex;
 
                 std::shared_ptr<wrapper::commands::Command> command;
 

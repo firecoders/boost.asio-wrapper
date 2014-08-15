@@ -32,11 +32,6 @@ Connection::Connection(boost::asio::io_service& io_service, Connection_handler& 
 {
 }
 
-boost::asio::ip::tcp::socket& Connection::get_socket()
-{
-    return socket;
-}
-
 Connection_identifier& Connection::get_identifier()
 {
     update_identifier();
@@ -65,10 +60,14 @@ void Connection::write(std::string message)
                                 shared_from_this(), message));
 }
 
+boost::asio::ip::tcp::socket& Connection::get_socket()
+{
+    return socket;
+}
+
 void Connection::close()
 {
     state = CONNECTION_STATE::CLOSED;
-    connection_handler.get_connections()->erase(identifier);
 
     if(deque_message.empty())
     {

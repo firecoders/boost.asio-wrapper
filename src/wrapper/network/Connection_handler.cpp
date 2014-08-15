@@ -25,10 +25,15 @@
 using namespace wrapper::network;
 using namespace wrapper::commands;
 
-Connection_handler::Connection_handler(std::shared_ptr<Command> Command):
-        command(Command), connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
+Connection_handler::Connection_handler(std::shared_ptr<Command> command):
+        command(command), connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
 {
     join.lock();
+}
+
+void Connection_handler::set_command(std::shared_ptr<Command> command)
+{
+    this->command = command;
 }
 
 void Connection_handler::connect_to(std::string ip, int port){
@@ -40,6 +45,8 @@ void Connection_handler::connect_to(std::string ip, int port){
 
 void Connection_handler::accept_on(int port){
     if(!contains_acceptor(port)){
+        boost::unique_lock<boost::shared_mutex> lock(acceptors_mutex);
+
         boost::shared_ptr<Acceptor> acceptor = boost::shared_ptr<Acceptor>(new Acceptor(io_service, this, port));
         acceptors.insert(std::pair<int, boost::shared_ptr<Acceptor> >(port, acceptor));
     }
@@ -47,15 +54,27 @@ void Connection_handler::accept_on(int port){
 
 void Connection_handler::stop_accept_on(int port){
     if(contains_acceptor(port)){
+        boost::unique_lock<boost::shared_mutex> lock(acceptors_mutex);
+
         acceptors[port]->close();
         acceptors.erase(port);
     }
+}
+
+bool Connection_handler::contains_acceptor(int port)
+{
+    boost::shared_lock<boost::shared_mutex> lock(acceptors_mutex);
+
+    return acceptors.find(port) != acceptors.end();
 }
 
 void Connection_handler::remove_connection(Connection_identifier& identifier)
 {
     if(contains(identifier)){
         (*connections)[identifier]->stop();
+
+        boost::unique_lock<boost::shared_mutex> lock(connections_mutex);
+        connections->erase(identifier);
     }
 }
 
@@ -77,20 +96,23 @@ void Connection_handler::handle_event(wrapper::network::EVENTS event, boost::sha
         command->execute(c);
 }
 
-boost::shared_ptr<std::map<Connection_identifier, boost::shared_ptr<Connection> > > Connection_handler::get_connections()
+boost::shared_ptr<const std::map<Connection_identifier, boost::shared_ptr<Connection> > > Connection_handler::get_connections()
 {
+    boost::shared_lock<boost::shared_mutex> lock(connections_mutex);
+
     return connections;
-}
-
-
-bool Connection_handler::contains(boost::shared_ptr<Connection>& connection)
-{
-    return contains(connection->get_identifier());
 }
 
 bool Connection_handler::contains(Connection_identifier& identifier)
 {
+    boost::shared_lock<boost::shared_mutex> lock(connections_mutex);
+
     return connections->find(identifier) != connections->end();
+}
+
+bool Connection_handler::contains(boost::shared_ptr<Connection>& connection)
+{
+    return contains(connection->get_identifier());
 }
 
 void Connection_handler::start()
@@ -105,6 +127,9 @@ void Connection_handler::wait_for_close()
 
 void Connection_handler::close()
 {
+    boost::unique_lock<boost::shared_mutex> connections_lock(connections_mutex);
+    boost::unique_lock<boost::shared_mutex> acceptors_lock(acceptors_mutex);
+
     io_service.stop();
 
     for (std::map<Connection_identifier, boost::shared_ptr<Connection> >::iterator it_p_connection = connections->begin();
@@ -125,15 +150,15 @@ void Connection_handler::close()
 void Connection_handler::add_connection(boost::shared_ptr<Connection>& connection, EVENTS open_event)
 {
     if(!contains(connection)){
-        connections->insert(std::pair<Connection_identifier, boost::shared_ptr<Connection> >(connection->get_identifier(), connection));
+        {
+            boost::unique_lock<boost::shared_mutex> lock(connections_mutex);
+
+            connections->insert(std::pair<Connection_identifier, boost::shared_ptr<Connection> >(connection->get_identifier(), connection));
+        }
+
         connection->start();
         handle_event(open_event, connection);
     }
     else
         connection->stop();
-}
-
-bool Connection_handler::contains_acceptor(int port)
-{
-    return acceptors.find(port) != acceptors.end();
 }
