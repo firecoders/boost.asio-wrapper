@@ -24,7 +24,7 @@
 ####################################################
 SRCDIR = src/
 OBJDIR = bin/
-CC = g++ -std=c++11 -Wall -I$(SRCDIR) -fdiagnostics-color=auto
+CC = g++ -std=c++11 -Wall -I$(SRCDIR)
 
 LIBRARY = libnetwork.a
 
@@ -64,15 +64,25 @@ wrapper/network/Connection_handler.h: \
 
 #commands
 
-wrapper/commands/interface/Command.h: \
+wrapper/commands/interfaces/Command.h: \
 	wrapper/network/events.h \
 	wrapper/network/Connection.h \
 	wrapper/network/Connection_handler.h
-	
+
 wrapper/commands/Command_hub.o: \
 	wrapper/commands/Command_hub.h
 wrapper/commands/Command_hub.h: \
-	wrapper/commands/interface/Command.h
+	wrapper/commands/interfaces/Command.h
+
+wrapper/commands/Execution_node.o: \
+	wrapper/commands/Execution_node.h
+wrapper/commands/Execution_node.h: \
+	wrapper/commands/interfaces/Command.h
+
+wrapper/commands/Filter_node.o: \
+	wrapper/commands/Filter_node.h
+wrapper/commands/Filter_node.h: \
+	wrapper/commands/interfaces/Command.h
 
 ####################################################
 #         Application definitions                  #
@@ -81,7 +91,9 @@ OBJS = wrapper/network/Connection.o \
 		wrapper/network/utils/Acceptor.o \
 		wrapper/network/utils/Connector.o \
 		wrapper/network/Connection_handler.o \
-		wrapper/commands/Command_hub.o
+		wrapper/commands/Command_hub.o \
+		wrapper/commands/Execution_node.o \
+		wrapper/commands/Filter_node.o
 
 $(LIBRARY): make_dirs $(OBJS)
 	ar rcs $@ $(addprefix $(OBJDIR), $(OBJS))

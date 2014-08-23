@@ -19,25 +19,38 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include "Command_hub.h"
+#ifndef FILTER_NODE_H_
+#define FILTER_NODE_H_
 
-using namespace wrapper::commands;
+#include <memory>
+#include <functional>
 
-void Command_hub::execute(Command_params& params)
+#include "wrapper/commands/interfaces/Command.h"
+
+namespace wrapper
 {
-    for(std::vector<std::shared_ptr<Command>>::iterator it = commands.begin(); it != commands.end(); ++it)
+    namespace commands
     {
-        if((*it)->match(params))
-            (*it)->execute(params);
+        class Filter_node : public Command
+        {
+            public:
+
+                Filter_node(std::shared_ptr<Command> command, std::function<bool(Command_params& params)> f_match);
+
+                void execute(Command_params& params);
+
+                bool match(Command_params& params);
+
+                void set_command(std::shared_ptr<Command> command);
+
+                void set_match(std::function<bool(Command_params& params)> f_match);
+
+            private:
+
+                std::shared_ptr<Command> command;
+                std::function<bool(Command_params& params)> f_match;
+        };
     }
 }
 
-bool Command_hub::match(Command_params& params)
-{
-    return true;
-}
-
-void Command_hub::add_command(std::shared_ptr<Command> command)
-{
-    commands.push_back(command);
-}
+#endif /* FILTER_NODE_H_ */
