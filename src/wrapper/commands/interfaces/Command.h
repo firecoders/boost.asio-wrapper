@@ -47,7 +47,6 @@ namespace wrapper
             public:
 
                 virtual void execute(Command_params& params) = 0;
-
                 virtual bool match(Command_params& params) = 0;
 
                 virtual ~Command() = default;

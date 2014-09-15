@@ -39,11 +39,9 @@ namespace wrapper
                 ~Filter_node() noexcept {};
 
                 void execute(Command_params& params);
-
                 bool match(Command_params& params);
 
                 void set_command(std::shared_ptr<Command> command);
-
                 void set_match(std::function<bool(Command_params& params)> f_match);
 
             private:

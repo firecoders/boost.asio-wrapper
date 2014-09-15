@@ -36,7 +36,6 @@ namespace wrapper
             public:
 
                 void execute(Command_params& params);
-
                 bool match(Command_params& params);
 
                 void add_command(std::shared_ptr<Command> command);
