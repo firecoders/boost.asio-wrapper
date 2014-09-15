@@ -23,7 +23,7 @@
 #define COMMAND_HUB_H_
 
 #include <memory>
-#include <functional>
+#include <vector>
 
 #include "wrapper/commands/interfaces/Command.h"
 
@@ -35,24 +35,14 @@ namespace wrapper
         {
             public:
 
-                Command_hub(std::function<bool(Command_params& params)> f_match = nullptr);
-
                 void execute(Command_params& params);
-
                 bool match(Command_params& params);
 
                 void add_command(std::shared_ptr<Command> command);
 
-                void set_match(std::function<bool(Command_params& params)> new_f_match = nullptr);
-
-                bool default_match(Command_params& params);
-
             private:
 
-                void use_default_match();
-
                 std::vector<std::shared_ptr<Command>> commands;
-                std::function<bool(Command_params& params)> f_match;
         };
     }
 }

@@ -19,25 +19,52 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include "Command_hub.h"
+#ifndef EXECUTION_NODE_H_
+#define EXECUTION_NODE_H_
 
-using namespace wrapper::commands;
+#include <memory>
 
-void Command_hub::execute(Command_params& params)
+#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
+
+#include "wrapper/commands/interfaces/Command.h"
+
+namespace wrapper
 {
-    for(std::vector<std::shared_ptr<Command>>::iterator it = commands.begin(); it != commands.end(); ++it)
+    namespace commands
     {
-        if((*it)->match(params))
-            (*it)->execute(params);
+        enum class EXECUTION_TYPE
+        {
+                ASYNCHRONOUS,
+                SYNCHRONOUS,
+                UNIQUE
+        };
+
+        class Execution_node : public Command
+        {
+            public:
+
+                Execution_node(std::shared_ptr<Command> command, EXECUTION_TYPE type);
+                ~Execution_node() noexcept {};
+
+                void execute(Command_params& params);
+                bool match(Command_params& params);
+
+                void set_command(std::shared_ptr<Command> command);
+                void set_execution_type(EXECUTION_TYPE type);
+
+            private:
+
+                void start_execute(Command_params& params);
+
+                boost::shared_mutex unique_mutex;
+
+                std::shared_ptr<Command> command;
+                EXECUTION_TYPE type;
+        };
     }
 }
 
-bool Command_hub::match(Command_params& params)
-{
-    return true;
-}
 
-void Command_hub::add_command(std::shared_ptr<Command> command)
-{
-    commands.push_back(command);
-}
+
+#endif /* EXECUTION_NODE_H_ */

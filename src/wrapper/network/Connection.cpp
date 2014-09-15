@@ -32,11 +32,6 @@ Connection::Connection(boost::asio::io_service& io_service, Connection_handler& 
 {
 }
 
-boost::asio::ip::tcp::socket& Connection::get_socket()
-{
-    return socket;
-}
-
 Connection_identifier& Connection::get_identifier()
 {
     update_identifier();
@@ -65,12 +60,16 @@ void Connection::write(std::string message)
                                 shared_from_this(), message));
 }
 
+boost::asio::ip::tcp::socket& Connection::get_socket()
+{
+    return socket;
+}
+
 void Connection::close()
 {
     state = CONNECTION_STATE::CLOSED;
-    connection_handler.get_connections()->erase(identifier);
 
-    if(deque_message.empty())
+    if(message_chunks.empty())
     {
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
         socket.close();
@@ -101,22 +100,6 @@ void Connection::read_header()
                                         boost::asio::placeholders::error));
 }
 
-void Connection::read_body(int message_size){
-    boost::asio::async_read(socket, buf_body, boost::asio::transfer_exactly(message_size),
-                            boost::bind(&Connection::handle_read_body, shared_from_this(),
-                                        boost::asio::placeholders::error));
-}
-
-int Connection::get_message_size(boost::asio::streambuf& buf)
-{
-    std::ostringstream ss;
-    ss << &buf;
-    std::string header = ss.str();
-
-    header = header.substr(0, header.find(" "));
-    return boost::lexical_cast<int>(header);
-}
-
 void Connection::handle_read_header(const boost::system::error_code& error)
 {
     if(!error){
@@ -125,6 +108,12 @@ void Connection::handle_read_header(const boost::system::error_code& error)
     }
     else
         handle_error(error);
+}
+
+void Connection::read_body(int message_size){
+    boost::asio::async_read(socket, buf_body, boost::asio::transfer_exactly(message_size),
+                            boost::bind(&Connection::handle_read_body, shared_from_this(),
+                                        boost::asio::placeholders::error));
 }
 
 void Connection::handle_read_body(const boost::system::error_code& error)
@@ -142,24 +131,52 @@ void Connection::handle_read_body(const boost::system::error_code& error)
         handle_error(error);
 }
 
-void Connection::write_message(std::string message){
-    deque_message.push_back(make_header(message));
-    deque_message.push_back(message);
+int Connection::get_message_size(boost::asio::streambuf& buf)
+{
+    std::ostringstream ss;
+    ss << &buf;
+    std::string header = ss.str();
 
-    if (deque_message.size() > 2)
+    header = header.substr(0, header.find(" "));
+    return boost::lexical_cast<int>(header);
+}
+
+void Connection::write_message(std::string message){
+    message_chunks.push(make_header(message));
+    message_chunks.push(message);
+
+    // Returns immediately if the Connection is already sending
+    if (message_chunks.size() > 2)
     {
         return;
     }
 
-    write_deque();
+    write_queue();
 }
 
-void Connection::write_deque(){
-    const std::string& message = deque_message[0];
+void Connection::write_queue(){
+    const std::string& message = message_chunks.front();
     boost::asio::async_write(socket, boost::asio::buffer(message.c_str(), message.size()),
-                             strand.wrap(boost::bind(&Connection::handle_write_deque,
+                             strand.wrap(boost::bind(&Connection::handle_write_queue,
                                                      shared_from_this(),
                                                      boost::asio::placeholders::error)));
+}
+
+void Connection::handle_write_queue(const boost::system::error_code& error){
+    message_chunks.pop();
+
+    handle_error(error);
+
+    // If 'message_chunks' is not empty, continue sending
+    if(!message_chunks.empty())
+    {
+        write_queue();
+    }
+
+    if(state == CONNECTION_STATE::CLOSED)
+    {
+        close();
+    }
 }
 
 std::string Connection::make_header(std::string& message){
@@ -167,20 +184,4 @@ std::string Connection::make_header(std::string& message){
     while(header.size() < 32)
         header.append(" ");
     return header;
-}
-
-void Connection::handle_write_deque(const boost::system::error_code& error){
-    deque_message.pop_front();
-
-    handle_error(error);
-
-    if(!deque_message.empty())
-    {
-        write_deque();
-    }
-
-    if(state == CONNECTION_STATE::CLOSED)
-    {
-        close();
-    }
 }

@@ -23,7 +23,7 @@
 #define CONNECTION_H_
 
 #include <string>
-#include <deque>
+#include <queue>
 
 #include <boost/asio.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -36,6 +36,9 @@ namespace wrapper
 {
     namespace network
     {
+        class Acceptor;
+        class Connector;
+
         class Connection_handler;
 
         enum class CONNECTION_STATE
@@ -85,14 +88,14 @@ namespace wrapper
                 }
         };
 
-        class Connection:
-                public boost::enable_shared_from_this<Connection>
+        class Connection : public boost::enable_shared_from_this<Connection>
         {
+                friend class Acceptor;
+                friend class Connector;
+
             public:
 
                 Connection(boost::asio::io_service& io_service, wrapper::network::Connection_handler& connection_handler);
-
-                boost::asio::ip::tcp::socket& get_socket();
 
                 wrapper::network::Connection_identifier& get_identifier();
 
@@ -102,6 +105,8 @@ namespace wrapper
 
             private:
 
+                boost::asio::ip::tcp::socket& get_socket();
+
                 void close();
 
                 void update_identifier();
@@ -109,20 +114,24 @@ namespace wrapper
                 void handle_error(const boost::system::error_code& error);
 
                 void read_header();
-                void read_body(int message_size);
-                int get_message_size(boost::asio::streambuf& buf);
                 void handle_read_header(const boost::system::error_code& error);
+
+                void read_body(int message_size);
                 void handle_read_body(const boost::system::error_code& error);
 
+                int get_message_size(boost::asio::streambuf& buf);
+
                 void write_message(std::string message);
-                void write_deque();
+
+                void write_queue();
+                void handle_write_queue(const boost::system::error_code& error);
+
                 std::string make_header(std::string& message);
-                void handle_write_deque(const boost::system::error_code& error);
 
                 boost::asio::ip::tcp::socket socket;
                 boost::asio::io_service::strand strand;
                 boost::asio::streambuf buf_header, buf_body;
-                std::deque<std::string> deque_message;
+                std::queue<std::string> message_chunks;
                 wrapper::network::CONNECTION_STATE state;
                 wrapper::network::Connection_identifier identifier;
                 wrapper::network::Connection_handler& connection_handler;

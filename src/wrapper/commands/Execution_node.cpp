@@ -19,25 +19,50 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include "Command_hub.h"
+#include "Execution_node.h"
 
 using namespace wrapper::commands;
 
-void Command_hub::execute(Command_params& params)
+Execution_node::Execution_node(std::shared_ptr<Command> command, EXECUTION_TYPE type):
+                                command(command), type(type)
 {
-    for(std::vector<std::shared_ptr<Command>>::iterator it = commands.begin(); it != commands.end(); ++it)
+}
+
+void Execution_node::execute(Command_params& params)
+{
+    if(type == EXECUTION_TYPE::ASYNCHRONOUS)
     {
-        if((*it)->match(params))
-            (*it)->execute(params);
+        boost::thread(boost::bind(&Execution_node::start_execute, this, params));
+    }
+    else if(type == EXECUTION_TYPE::SYNCHRONOUS)
+    {
+        start_execute(params);
+    }
+    else
+    {
+        boost::unique_lock<boost::shared_mutex> lock(unique_mutex);
+        start_execute(params);
     }
 }
 
-bool Command_hub::match(Command_params& params)
+bool Execution_node::match(Command_params& params)
 {
     return true;
 }
 
-void Command_hub::add_command(std::shared_ptr<Command> command)
+void Execution_node::set_command(std::shared_ptr<Command> command)
 {
-    commands.push_back(command);
+    this->command = command;
 }
+
+void Execution_node::set_execution_type(EXECUTION_TYPE type)
+{
+    this->type = type;
+}
+
+void Execution_node::start_execute(Command_params& params)
+{
+    if(command->match(params))
+        command->execute(params);
+}
+
