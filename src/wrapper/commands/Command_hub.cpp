@@ -19,7 +19,7 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include "Command_hub.h"
+#include "wrapper/commands/Command_hub.h"
 
 using namespace wrapper::commands;
 
