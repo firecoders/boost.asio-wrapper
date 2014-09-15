@@ -36,6 +36,7 @@ namespace wrapper
             public:
 
                 Filter_node(std::shared_ptr<Command> command, std::function<bool(Command_params& params)> f_match);
+                ~Filter_node() noexcept {};
 
                 void execute(Command_params& params);
 

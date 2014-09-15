@@ -45,6 +45,7 @@ namespace wrapper
             public:
 
                 Execution_node(std::shared_ptr<Command> command, EXECUTION_TYPE type);
+                ~Execution_node() noexcept {};
 
                 void execute(Command_params& params);
                 bool match(Command_params& params);
