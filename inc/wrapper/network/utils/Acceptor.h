@@ -19,8 +19,8 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef ACCEPTOR_H_
-#define ACCEPTOR_H_
+#ifndef WRAPPER_NETWORK_UTILS_ACCEPTOR_GUARD
+#define WRAPPER_NETWORK_UTILS_ACCEPTOR_GUARD
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -57,4 +57,4 @@ namespace wrapper
     }
 }
 
-#endif /* ACCEPTOR_H_ */
+#endif /* WRAPPER_NETWORK_UTILS_ACCEPTOR_GUARD */

@@ -19,8 +19,8 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef EVENT_H_
-#define EVENT_H_
+#ifndef WRAPPER_NETWORK_EVENTS
+#define WRAPPER_NETWORK_EVENTS
 
 namespace wrapper
 {
@@ -28,15 +28,13 @@ namespace wrapper
     {
         enum class EVENTS
         {
-                CONNECTION_OPENED,
-                CONNECTION_WAS_OPENED,
-                MESSAGE_RECEIVED,
-                CONNECTION_WAS_CLOSED,
-                CONNECTION_CLOSED
+            CONNECTION_OPENED,
+            CONNECTION_WAS_OPENED,
+            MESSAGE_RECEIVED,
+            CONNECTION_WAS_CLOSED,
+            CONNECTION_CLOSED
         };
     }
 }
 
-
-
-#endif /* EVENT_H_ */
+#endif /* WRAPPER_NETWORK_EVENTS */
