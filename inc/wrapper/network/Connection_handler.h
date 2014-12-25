@@ -32,15 +32,12 @@
 #include "wrapper/network/Connection.h"
 #include "wrapper/network/utils/Acceptor.h"
 #include "wrapper/network/utils/Connector.h"
-#include "wrapper/network/events.h"
+
+#include "engine/events/interfaces/Receiver.h"
+#include "wrapper/network/types/Dict.hpp"
 
 namespace wrapper
 {
-    namespace commands
-    {
-        class Command;
-    }
-
     namespace network
     {
         class Connection_handler
@@ -50,9 +47,7 @@ namespace wrapper
 
             public:
 
-                Connection_handler(std::shared_ptr<wrapper::commands::Command> command);
-
-                void set_command(std::shared_ptr<wrapper::commands::Command> command);
+                Connection_handler(std::shared_ptr<engine::events::Receiver<std::shared_ptr<engine::types::Dict>>> receiver);
 
                 void connect_to(std::string ip, int port);
 
@@ -83,7 +78,7 @@ namespace wrapper
 
                 boost::shared_mutex connections_mutex, acceptors_mutex;
 
-                std::shared_ptr<wrapper::commands::Command> command;
+                std::shared_ptr<engine::events::Receiver<std::shared_ptr<engine::types::Dict>>> receiver;
 
                 boost::asio::io_service io_service;
                 boost::shared_ptr<std::map<wrapper::network::Connection_identifier, boost::shared_ptr<wrapper::network::Connection> > > connections;

@@ -20,20 +20,13 @@
    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #include "wrapper/network/Connection_handler.h"
-#include "wrapper/commands/interfaces/Command.h"
 
 using namespace wrapper::network;
-using namespace wrapper::commands;
 
-Connection_handler::Connection_handler(std::shared_ptr<Command> command):
-        command(command), connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
+Connection_handler::Connection_handler(std::shared_ptr<engine::events::Receiver<std::shared_ptr<engine::types::Dict>>> receiver):
+        receiver(receiver), connections(new std::map<Connection_identifier, boost::shared_ptr<Connection> >)
 {
     join.lock();
-}
-
-void Connection_handler::set_command(std::shared_ptr<Command> command)
-{
-    this->command = command;
 }
 
 void Connection_handler::connect_to(std::string ip, int port){
@@ -81,10 +74,14 @@ void Connection_handler::remove_connection(Connection_identifier& identifier)
 void Connection_handler::handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator,
                                       std::string message)
 {
-    wrapper::commands::Command_params c{message, event, activator, *this};
+    std::shared_ptr < engine::types::Dict > dict = std::make_shared < engine::types::Dict > ();
 
-    if(command->match(c))
-        command->execute(c);
+    dict->insert({std::string("event"), event});
+    dict->insert({std::string("message"), message});
+    dict->insert({std::string("activator"), activator});
+    dict->insert({std::string("connection_handler"), this});
+
+    receiver->receive(dict);
 }
 
 boost::shared_ptr<const std::map<Connection_identifier, boost::shared_ptr<Connection> > > Connection_handler::get_connections()
