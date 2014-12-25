@@ -62,9 +62,7 @@ namespace wrapper
 
                 void remove_connection(wrapper::network::Connection_identifier& identifier);
 
-                void handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator);
-
-                void handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator, std::string& message);
+                void handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator, std::string message = "");
 
                 boost::shared_ptr<const std::map<wrapper::network::Connection_identifier, boost::shared_ptr<wrapper::network::Connection> > > get_connections();
 

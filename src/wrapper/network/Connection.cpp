@@ -27,7 +27,7 @@ using namespace wrapper::network;
 Connection::Connection(boost::asio::io_service& io_service, Connection_handler& connection_handler):
         socket(io_service), strand(io_service),
         state(CONNECTION_STATE::INITIALISED),
-        identifier("0.0.0.0", 0),
+        identifier{"0.0.0.0", 0},
         connection_handler(connection_handler)
 {
 }

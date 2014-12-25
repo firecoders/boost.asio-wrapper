@@ -36,9 +36,9 @@ namespace wrapper
     {
         struct Command_params
         {
-                std::string& message;
-                wrapper::network::EVENTS& event;
-                boost::shared_ptr<wrapper::network::Connection>& activator;
+                std::string message;
+                wrapper::network::EVENTS event;
+                boost::shared_ptr<wrapper::network::Connection> activator;
                 wrapper::network::Connection_handler& handler;
         };
 

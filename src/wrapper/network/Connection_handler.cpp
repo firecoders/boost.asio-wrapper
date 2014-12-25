@@ -37,7 +37,7 @@ void Connection_handler::set_command(std::shared_ptr<Command> command)
 }
 
 void Connection_handler::connect_to(std::string ip, int port){
-    Connection_identifier identifier(ip, port);
+    Connection_identifier identifier{ip, port};
 
     if(!contains(identifier))
         new Connector(io_service, this, ip, port);
@@ -78,17 +78,8 @@ void Connection_handler::remove_connection(Connection_identifier& identifier)
     }
 }
 
-void Connection_handler::handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator)
-{
-    std::string placeholder = "";
-    wrapper::commands::Command_params c{placeholder, event, activator, *this};
-
-    if(command->match(c))
-        command->execute(c);
-}
-
 void Connection_handler::handle_event(wrapper::network::EVENTS event, boost::shared_ptr<wrapper::network::Connection> activator,
-                                      std::string& message)
+                                      std::string message)
 {
     wrapper::commands::Command_params c{message, event, activator, *this};
 
@@ -149,16 +140,12 @@ void Connection_handler::close()
 
 void Connection_handler::add_connection(boost::shared_ptr<Connection>& connection, EVENTS open_event)
 {
-    if(!contains(connection)){
-        {
-            boost::unique_lock<boost::shared_mutex> lock(connections_mutex);
+    {
+        boost::unique_lock<boost::shared_mutex> lock(connections_mutex);
 
-            connections->insert(std::pair<Connection_identifier, boost::shared_ptr<Connection> >(connection->get_identifier(), connection));
-        }
-
-        connection->start();
-        handle_event(open_event, connection);
+        connections->insert(std::pair<Connection_identifier, boost::shared_ptr<Connection> >(connection->get_identifier(), connection));
     }
-    else
-        connection->stop();
+
+    connection->start();
+    handle_event(open_event, connection);
 }

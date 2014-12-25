@@ -50,15 +50,8 @@ namespace wrapper
 
         struct Connection_identifier
         {
-            public:
-
                 std::string ip;
                 int port;
-
-                Connection_identifier(std::string ip, int port):
-                    ip(ip), port(port)
-                {
-                }
 
                 bool operator==(const Connection_identifier& other) const
                 {
@@ -80,11 +73,9 @@ namespace wrapper
                     return to_string(ip, port) > to_string(other.ip, other.port);
                 }
 
-            private:
-
                 std::string to_string(const std::string& s_ip, int i_port) const
                 {
-                    return s_ip + ":" + std::to_string(i_port);
+                    return s_ip + " : " + std::to_string(i_port);
                 }
         };
 
