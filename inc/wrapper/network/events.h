@@ -31,6 +31,7 @@ namespace wrapper
             CONNECTION_OPENED,
             CONNECTION_WAS_OPENED,
             MESSAGE_RECEIVED,
+            MESSAGE_SENDED,
             CONNECTION_WAS_CLOSED,
             CONNECTION_CLOSED
         };

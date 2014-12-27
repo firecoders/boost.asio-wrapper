@@ -38,26 +38,35 @@ Connection_identifier& Connection::get_identifier()
     return identifier;
 }
 
+void Connection::update_identifier()
+{
+    identifier.ip = socket.local_endpoint().address().to_string();
+    identifier.port = socket.local_endpoint().port();
+}
+
 void Connection::start()
 {
     if(state == CONNECTION_STATE::INITIALISED)
-    {
         state = CONNECTION_STATE::OPENED;
-        read_header();
-    }
 }
 
 void Connection::stop()
 {
+    state = CONNECTION_STATE::CLOSING;
     close();
-    connection_handler.handle_event(EVENTS::CONNECTION_CLOSED, shared_from_this());
 }
 
-void Connection::write(std::string message)
+void Connection::close()
 {
-    if(state == CONNECTION_STATE::OPENED)
-        strand.post(boost::bind(&Connection::write_message,
-                                shared_from_this(), message));
+    boost::unique_lock<boost::shared_mutex> lock(close_mutex);
+
+    if(state == CONNECTION_STATE::CLOSING && message_chunks_empty())
+    {
+        state = CONNECTION_STATE::CLOSED;
+        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+        socket.close();
+        connection_handler.handle_event(EVENTS::CONNECTION_CLOSED, shared_from_this());
+    }
 }
 
 boost::asio::ip::tcp::socket& Connection::get_socket()
@@ -65,21 +74,205 @@ boost::asio::ip::tcp::socket& Connection::get_socket()
     return socket;
 }
 
-void Connection::close()
+void Connection::write(std::string message)
 {
-    state = CONNECTION_STATE::CLOSED;
-
-    if(message_chunks.empty())
+    if(state == CONNECTION_STATE::OPENED)
     {
-        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-        socket.close();
+        boost::unique_lock<boost::shared_mutex> lock(message_push_mutex);
+
+        push_message(message);
     }
 }
 
-void Connection::update_identifier()
+void Connection::write(std::vector<std::string> messages)
 {
-    identifier.ip = socket.local_endpoint().address().to_string();
-    identifier.port = socket.local_endpoint().port();
+    if(state == CONNECTION_STATE::OPENED)
+    {
+        boost::unique_lock<boost::shared_mutex> lock(message_push_mutex);
+
+        for(std::vector<std::string>::iterator iterator = messages.begin(); iterator != messages.end(); ++iterator) {
+            push_message(*iterator);
+        }
+
+    }
+}
+
+void Connection::push_message(std::string message)
+{
+    boost::unique_lock<boost::shared_mutex> lock(message_size_mutex);
+
+    if (message_chunks.size() > 0)
+        message_chunks.push(message);
+    else if(message_chunks.empty())
+    {
+        message_chunks.push(message);
+        strand.post(boost::bind(&Connection::write_queue, shared_from_this()));
+    }
+}
+
+void Connection::write_queue()
+{
+    boost::unique_lock<boost::shared_mutex> lock(write_mutex);
+
+    while(!message_chunks_empty())
+    {
+        const std::string& message = message_chunks.front();
+        boost::system::error_code error;
+        boost::asio::write(socket, boost::asio::buffer(message.c_str(), message.size()), error);
+
+        handle_error(error);
+        connection_handler.handle_event(EVENTS::MESSAGE_SENDED, shared_from_this(), message);
+
+        message_chunks.pop();
+    }
+
+    if(message_chunks_empty())
+        close();
+
+}
+
+bool Connection::message_chunks_empty()
+{
+    boost::unique_lock<boost::shared_mutex> lock(message_size_mutex);
+
+    return message_chunks.empty();
+}
+
+void Connection::read()
+{
+    if(state == CONNECTION_STATE::OPENED)
+    {
+        boost::unique_lock<boost::shared_mutex> lock(read_push_mutex);
+
+        push_read([this] (boost::system::error_code& error) -> std::string {
+            boost::asio::streambuf buf;
+            boost::asio::read(socket, buf, error);
+
+            std::ostringstream oss;
+            oss << &buf;
+            std::string message = oss.str();
+
+            return message;
+        });
+    }
+}
+
+void Connection::read(const unsigned int size)
+{
+    if(state == CONNECTION_STATE::OPENED)
+    {
+        boost::unique_lock<boost::shared_mutex> lock(read_push_mutex);
+
+        push_read([this, size] (boost::system::error_code& error) -> std::string {
+            boost::asio::streambuf buf;
+            boost::asio::read(socket, buf, boost::asio::transfer_exactly(size), error);
+
+            std::ostringstream oss;
+            oss << &buf;
+            std::string message = oss.str();
+
+            return message;
+        });
+    }
+}
+
+void Connection::read_until(const char c)
+{
+    if(state == CONNECTION_STATE::OPENED)
+    {
+        boost::unique_lock<boost::shared_mutex> lock(read_push_mutex);
+
+        push_read([this, c] (boost::system::error_code& error) -> std::string {
+            boost::asio::streambuf buf;
+            boost::asio::read_until(socket, buf, c, error);
+
+            std::ostringstream oss;
+            oss << &buf;
+            std::string message = oss.str();
+
+            return message;
+        });
+    }
+}
+
+void Connection::read_until(const std::string s)
+{
+    if(state == CONNECTION_STATE::OPENED)
+    {
+        boost::unique_lock<boost::shared_mutex> lock(read_push_mutex);
+
+        push_read([this, s] (boost::system::error_code& error) -> std::string {
+            boost::asio::streambuf buf;
+            boost::asio::read_until(socket, buf, s, error);
+
+            std::ostringstream oss;
+            oss << &buf;
+            std::string message = oss.str();
+
+            return message;
+        });
+    }
+}
+
+void Connection::read_until(const boost::regex expression)
+{
+    if(state == CONNECTION_STATE::OPENED)
+    {
+        boost::unique_lock<boost::shared_mutex> lock(read_push_mutex);
+
+        push_read([this, expression] (boost::system::error_code& error) -> std::string {
+            boost::asio::streambuf buf;
+            boost::asio::read_until(socket, buf, expression, error);
+
+            std::ostringstream oss;
+            oss << &buf;
+            std::string message = oss.str();
+
+            return message;
+        });
+    }
+}
+
+
+void Connection::push_read(boost::function<std::string(boost::system::error_code)> function)
+{
+    boost::unique_lock<boost::shared_mutex> lock(read_size_mutex);
+
+    if (read_queue.size() > 0)
+        read_queue.push(function);
+    else if(read_queue.empty())
+    {
+        read_queue.push(function);
+        strand.post(boost::bind(&Connection::read_loop, shared_from_this()));
+    }
+}
+
+void Connection::read_loop()
+{
+    boost::unique_lock<boost::shared_mutex> lock(read_mutex);
+
+    while(!read_queue_empty())
+    {
+        const boost::function<std::string(boost::system::error_code)>& function = read_queue.front();
+        boost::system::error_code error;
+        std::string message = function(error);
+
+        handle_error(error);
+        connection_handler.handle_event(EVENTS::MESSAGE_RECEIVED, shared_from_this(), message);
+
+        read_queue.pop();
+    }
+
+    if(read_queue_empty())
+        close();
+
+}
+
+bool Connection::read_queue_empty()
+{
+    boost::unique_lock<boost::shared_mutex> lock(read_size_mutex);
+
+    return read_queue.empty();
 }
 
 void Connection::handle_error(const boost::system::error_code& error)
@@ -91,97 +284,4 @@ void Connection::handle_error(const boost::system::error_code& error)
     else if(error){
         std::cerr << error.message() << std::endl;
     }
-}
-
-void Connection::read_header()
-{
-    boost::asio::async_read(socket, buf_header, boost::asio::transfer_exactly(32),
-                            boost::bind(&Connection::handle_read_header, shared_from_this(),
-                                        boost::asio::placeholders::error));
-}
-
-void Connection::handle_read_header(const boost::system::error_code& error)
-{
-    if(!error){
-        int message_size = get_message_size(buf_header);
-        read_body(message_size);
-    }
-    else
-        handle_error(error);
-}
-
-void Connection::read_body(int message_size){
-    boost::asio::async_read(socket, buf_body, boost::asio::transfer_exactly(message_size),
-                            boost::bind(&Connection::handle_read_body, shared_from_this(),
-                                        boost::asio::placeholders::error));
-}
-
-void Connection::handle_read_body(const boost::system::error_code& error)
-{
-    if(!error){
-
-        std::ostringstream ss;
-        ss << &buf_body;
-        std::string body = ss.str();
-
-        connection_handler.handle_event(EVENTS::MESSAGE_RECEIVED, shared_from_this(), body);
-        read_header();
-    }
-    else
-        handle_error(error);
-}
-
-int Connection::get_message_size(boost::asio::streambuf& buf)
-{
-    std::ostringstream ss;
-    ss << &buf;
-    std::string header = ss.str();
-
-    header = header.substr(0, header.find(" "));
-    return boost::lexical_cast<int>(header);
-}
-
-void Connection::write_message(std::string message){
-    message_chunks.push(make_header(message));
-    message_chunks.push(message);
-
-    // Returns immediately if the Connection is already sending
-    if (message_chunks.size() > 2)
-    {
-        return;
-    }
-
-    write_queue();
-}
-
-void Connection::write_queue(){
-    const std::string& message = message_chunks.front();
-    boost::asio::async_write(socket, boost::asio::buffer(message.c_str(), message.size()),
-                             strand.wrap(boost::bind(&Connection::handle_write_queue,
-                                                     shared_from_this(),
-                                                     boost::asio::placeholders::error)));
-}
-
-void Connection::handle_write_queue(const boost::system::error_code& error){
-    message_chunks.pop();
-
-    handle_error(error);
-
-    // If 'message_chunks' is not empty, continue sending
-    if(!message_chunks.empty())
-    {
-        write_queue();
-    }
-
-    if(state == CONNECTION_STATE::CLOSED)
-    {
-        close();
-    }
-}
-
-std::string Connection::make_header(std::string& message){
-    std::string header = boost::lexical_cast<std::string>(message.size());
-    while(header.size() < 32)
-        header.append(" ");
-    return header;
 }
