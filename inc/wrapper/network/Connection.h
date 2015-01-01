@@ -101,7 +101,6 @@ namespace wrapper
                 void write(std::string message);
                 void write(std::vector<std::string> messages);
 
-                void read();
                 void read(const unsigned int size);
                 void read_until(const char c);
                 void read_until(const std::string s);
@@ -126,7 +125,6 @@ namespace wrapper
                 void handle_error(const boost::system::error_code& error);
 
                 boost::asio::ip::tcp::socket socket;
-                boost::asio::io_service::strand strand;
                 boost::shared_mutex message_push_mutex, message_size_mutex, write_mutex;
                 boost::shared_mutex close_mutex;
                 boost::shared_mutex read_push_mutex, read_size_mutex, read_mutex;

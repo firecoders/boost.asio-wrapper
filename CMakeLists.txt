@@ -47,16 +47,11 @@ set(EXTERNALS_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNALS_PREFIX})
 # Add the eventsystem
 ExternalProject_Add ( EVENTSYSTEM
     PREFIX ${EXTERNALS_PREFIX}
-    URL https://github.com/firecoders/eventsystem/archive/v0.2.2.tar.gz
-    URL_HASH SHA256=35d4a3d6da47a67d501baa473997152e097efc67b8a1075db8098a5153a7d75b
-    DOWNLOAD_NAME eventsystem-v0.2.2.tar.gz
+    URL https://github.com/firecoders/eventsystem/archive/v0.2.3.tar.gz
+    URL_HASH SHA256=ecc13afc44f0bfccbe1004f0f9d8783d492384f5b0846e3b6b1a572a9ffe3e68
+    DOWNLOAD_NAME eventsystem-v0.2.3.tar.gz
     CMAKE_ARGS ${EXTERNALS_CMAKE_ARGS}
 )
-
-# Import libeventsystem.a
-add_library ( libeventsystem STATIC IMPORTED )
-set_target_properties ( libeventsystem PROPERTIES IMPORTED_LOCATION ${EXTERNALS_PREFIX}/lib/libeventsystem.a )
-add_dependencies ( libeventsystem EVENTSYSTEM )
 
 # Include headers from inc
 include_directories(${CMAKE_SOURCE_DIR}/inc)

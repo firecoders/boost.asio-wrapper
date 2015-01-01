@@ -25,7 +25,7 @@
 using namespace wrapper::network;
 
 Connection::Connection(boost::asio::io_service& io_service, Connection_handler& connection_handler):
-        socket(io_service), strand(io_service),
+        socket(io_service),
         state(CONNECTION_STATE::INITIALISED),
         identifier{"0.0.0.0", 0},
         connection_handler(connection_handler)
@@ -60,7 +60,7 @@ void Connection::close()
 {
     boost::unique_lock<boost::shared_mutex> lock(close_mutex);
 
-    if(state == CONNECTION_STATE::CLOSING && message_chunks_empty())
+    if(state == CONNECTION_STATE::CLOSING && message_chunks_empty() && read_queue_empty())
     {
         state = CONNECTION_STATE::CLOSED;
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
@@ -106,7 +106,9 @@ void Connection::push_message(std::string message)
     else if(message_chunks.empty())
     {
         message_chunks.push(message);
-        strand.post(boost::bind(&Connection::write_queue, shared_from_this()));
+
+        boost::thread t(boost::bind(&Connection::write_queue, shared_from_this()));
+        t.detach();
     }
 }
 
@@ -128,7 +130,6 @@ void Connection::write_queue()
 
     if(message_chunks_empty())
         close();
-
 }
 
 bool Connection::message_chunks_empty()
@@ -136,25 +137,6 @@ bool Connection::message_chunks_empty()
     boost::unique_lock<boost::shared_mutex> lock(message_size_mutex);
 
     return message_chunks.empty();
-}
-
-void Connection::read()
-{
-    if(state == CONNECTION_STATE::OPENED)
-    {
-        boost::unique_lock<boost::shared_mutex> lock(read_push_mutex);
-
-        push_read([this] (boost::system::error_code& error) -> std::string {
-            boost::asio::streambuf buf;
-            boost::asio::read(socket, buf, error);
-
-            std::ostringstream oss;
-            oss << &buf;
-            std::string message = oss.str();
-
-            return message;
-        });
-    }
 }
 
 void Connection::read(const unsigned int size)
@@ -243,7 +225,9 @@ void Connection::push_read(boost::function<std::string(boost::system::error_code
     else if(read_queue.empty())
     {
         read_queue.push(function);
-        strand.post(boost::bind(&Connection::read_loop, shared_from_this()));
+
+        boost::thread t(boost::bind(&Connection::read_loop, shared_from_this()));
+        t.detach();
     }
 }
 

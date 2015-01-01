@@ -11,4 +11,4 @@ find_package(Threads REQUIRED)
 target_link_libraries(boost.asio-wrapper ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # Include eventsystem headers
-include_directories ( ${EXTERNALS_PREFIX}/src/EVENTSYSTEM/inc )
+include_directories(${EXTERNALS_PREFIX}/src/EVENTSYSTEM/inc)
